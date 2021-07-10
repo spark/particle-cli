@@ -42,6 +42,10 @@ module.exports = ({ commandProcessor, root }) => {
 		options: Object.assign({
 			'file': {
 				description: 'Take the credentials from a JSON file instead of prompting for them'
+			},
+			'clear': {
+				boolean: true,
+				description: 'Remove existing credentials in the device'
 			}
 		}, portOption),
 		handler: (args) => {
@@ -50,7 +54,8 @@ module.exports = ({ commandProcessor, root }) => {
 		},
 		examples: {
 			'$0 $command': 'Prompt for Wi-Fi credentials and send them to a device over serial',
-			'$0 $command --file credentials.json': 'Read Wi-Fi credentials from credentials.json and send them to a device over serial'
+			'$0 $command --file credentials.json': 'Read Wi-Fi credentials from credentials.json and send them to a device over serial',
+			'$0 $command --clear': 'Clear device stored Wi-Fi credentials'
 		},
 		epilogue: unindent(`
 			The JSON file for passing Wi-Fi credentials should look like this:

@@ -494,13 +494,17 @@ module.exports = class SerialCommand {
 			});
 	}
 
-	configureWifi({ port, file }){
+	configureWifi({ port, file, clear }){
 		const credentialsFile = file;
 
 		return this.whatSerialPortDidYouMean(port, true)
 			.then(device => {
 				if (!device){
 					throw new VError('No serial port identified');
+				}
+
+				if (clear){
+					this._clearDeviceWifi(device);
 				}
 
 				if (credentialsFile){
@@ -512,6 +516,70 @@ module.exports = class SerialCommand {
 			.catch(err => {
 				throw new VError(ensureError(err), 'Error configuring Wi-Fi');
 			});
+	}
+
+	_clearDeviceWifi(device) {
+		if (!device){
+			return Promise.reject('No serial port available');
+		}
+
+		log.verbose('Attempting to clean Wi-Fi credentials on ' + device.port);
+
+		const self = this;
+		let cleanUpFn;
+		const promise = new Promise((resolve, reject) => {
+			const serialPort = self.serialPort || new SerialPort(device.port, SERIAL_PORT_DEFAULTS);
+			const parser = new SerialBatchParser({ timeout: 250 });
+
+			cleanUpFn = () => {
+				resetTimeout();
+				serialPort.removeListener('close', serialClosedEarly);
+				return new Promise((resolve) => {
+					serialPort.close(resolve);
+				});
+			};
+			serialPort.pipe(parser);
+			serialPort.on('error', (err) => reject(err));
+			serialPort.on('close', serialClosedEarly);
+
+			const serialTrigger = new SerialTrigger(serialPort, parser);
+
+			serialTrigger.addTrigger('Awesome. Credentials erased correcly!', () => {
+				resetTimeout();
+				resolve();
+			});
+
+			serialPort.open((err) => {
+				if (err){
+					return reject(err);
+				}
+
+				serialTrigger.start(true);
+				serialPort.write('W');
+				serialPort.drain();
+
+				// In case device is not in listening mode.
+				startTimeout(5000, 'Serial timed out while initially listening to device, please ensure device is in listening mode with particle usb start-listening', 'InitialTimeoutError');
+			});
+
+			function serialClosedEarly(){
+				reject('Serial port closed early');
+			}
+
+			function startTimeout(to, message = timeoutError, name = 'TimeoutError'){
+				self._serialTimeout = setTimeout(() => {
+					reject(new VError({ name }, message));
+				}, to);
+			}
+
+			function resetTimeout(){
+				clearTimeout(self._serialTimeout);
+				self._serialTimeout = null;
+			}
+
+		});
+
+		return promise.finally(cleanUpFn);
 	}
 
 	_configWifiFromFile(device, filename){
