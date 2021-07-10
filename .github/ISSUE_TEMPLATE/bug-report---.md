@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 <!--
-  Please fill out each section below. This info helps maintainers diagnose and fix your issue as quickly as possible.
+  Thanks for reporting your issue. Please fill out each section below. This info helps maintainers diagnose and fix your issue as quickly as possible. If you have an enterprise support contract with Particle, please also open a support request at support.particle.io with a link to this issue.
 
   Useful Links:
   - Documentation: https://docs.particle.io/cli/
